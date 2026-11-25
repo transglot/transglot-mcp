@@ -1,0 +1,619 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the full tool surface (descriptions + JSON Schema inputs) is pinned 1`] = `
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Read the current project: id, name, slug, source locale, every configured locale (with RTL flag and which one is the source), the total key count, and the message syntax and icu dialect. Free read with no side effects. Call it first to learn which locales exist before reading or writing translations.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "get_project",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "List the locales configured on the project (code, display name, RTL flag, is_source) plus the source locale. Free read with no side effects. Use add_language to add one; removing a language is done in the transglot web UI.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "list_languages",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Add a target language to the project. Pass a BCP 47 tag ("de", "pt-BR", "zh-Hans"); the result carries the CANONICAL code (e.g. "pt_BR"), which is the one to use in every later call. Unless translate_now is false, it also starts an AI translation run of the existing strings into the new language, which SPENDS the organization AI word quota; the run happens only when the project translates on its own (auto_translate), whatever translate_now says, and otherwise batch_id and backfill_skipped_reason are both null. Poll get_batch_status with batch_id. A refused run does not refuse the add: the language is still added, batch_id is null and backfill_skipped_reason says why (quota_exceeded, translation_paused, nothing_to_translate). Fails with locale-rejected for an unknown code or a language the project already has, and plan-limit when the account plan has no room for another language. Each new language takes one of the language slots on the account plan (unless another project of the account already uses it), and it cannot be removed through the API, only in the transglot web UI, so do not add languages to experiment. Workspace admins are notified. Requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "locale": {
+          "description": "A BCP 47 tag, e.g. "de", "pt-BR" or "zh-Hans". Case and "-" or "_" do not matter.",
+          "maxLength": 35,
+          "minLength": 1,
+          "type": "string",
+        },
+        "translate_now": {
+          "description": "Start translating the existing strings into it now (default true). Spends AI word quota.",
+          "type": "boolean",
+        },
+      },
+      "required": [
+        "locale",
+      ],
+      "type": "object",
+    },
+    "name": "add_language",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Read one translation key in one locale. Free read. Returns the full row: key metadata (name, description, is_plural, max_length) plus the source-locale cell and the requested locale's cell with its content or plural_forms, workflow state (ai_translated / human_edited / reviewed / null when missing), staleness flag, and the persisted QA verdict (needs_review, qa_score, qa_findings). Requires the "read" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "key": {
+          "description": "Exact key name, e.g. "checkout.title".",
+          "maxLength": 500,
+          "type": "string",
+        },
+        "locale": {
+          "description": "A locale configured on the project, e.g. "fr" or "pt-BR".",
+          "maxLength": 35,
+          "type": "string",
+        },
+      },
+      "required": [
+        "key",
+        "locale",
+      ],
+      "type": "object",
+    },
+    "name": "get_translation",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Create or OVERWRITE the value of one existing key in one locale (it cannot create new keys; use push_file on the source locale for that). Pass \`value\` for a simple key, or \`plural_forms\` (CLDR category map, e.g. {"one": "...", "other": "..."}) for a plural key. Send exactly one of the two. A JSON project has no plural FORMS: an ICU plural or select there is ONE string, so send it as \`value\` with its selectors and argument names verbatim (e.g. {count, plural, one {# item} other {# items}}). \`plural_forms\` is for a key the project stores as separate forms (is_plural true, as gettext or Android do); splitting an ICU message into it writes a row the format cannot represent. The write is recorded as a human edit (state human_edited) and versioned server-side, so it wins over future AI batches. Overwriting the SOURCE locale marks targets stale and, if the project has auto-translate on, queues a background AI batch (spends AI word quota; its id is not returned, so check list_batches). Optional \`reviewer\` attributes the edit. Returns the fresh row. Requires the "write" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "key": {
+          "description": "Exact key name of an EXISTING key.",
+          "maxLength": 500,
+          "type": "string",
+        },
+        "locale": {
+          "description": "A locale configured on the project.",
+          "maxLength": 35,
+          "type": "string",
+        },
+        "plural_forms": {
+          "additionalProperties": {
+            "type": "string",
+          },
+          "description": "New values for a plural key, keyed by CLDR plural category (one, few, many, other, ...).",
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+        "reviewer": {
+          "description": "Optional human reviewer name recorded on the edit.",
+          "maxLength": 120,
+          "type": "string",
+        },
+        "value": {
+          "description": "New value for a simple (non-plural) key. Use "" to clear.",
+          "maxLength": 10000,
+          "type": "string",
+        },
+      },
+      "required": [
+        "key",
+        "locale",
+      ],
+      "type": "object",
+    },
+    "name": "upsert_translation",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Start an AI translation batch that fills every MISSING target value and re-translates every STALE machine translation (one whose source text changed since), optionally restricted to given locales and/or numeric key_ids. A stale machine translation is replaced; human-edited and reviewed translations are never overwritten, stale or not. SPENDS the organization AI word quota (fails with quota-exceeded when exhausted) and conflicts with a running batch (active-batch, HTTP 409; the running batch id is in the error). Returns the queued batch immediately; poll get_batch_status with its id until the status is terminal (completed, completed_with_errors, failed, or cancelled). Requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "key_ids": {
+          "description": "Restrict to these numeric key ids (from get_translation row.id); omit for all keys.",
+          "items": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer",
+          },
+          "maxItems": 2000,
+          "type": "array",
+        },
+        "locales": {
+          "description": "Restrict to these target locales; omit for all.",
+          "items": {
+            "maxLength": 35,
+            "type": "string",
+          },
+          "maxItems": 200,
+          "type": "array",
+        },
+      },
+      "type": "object",
+    },
+    "name": "translate_missing",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Read one AI translation batch by id: status (pending / processing / completed / completed_with_errors / failed / cancelled), progress counters (total, completed, failed) and the per-language breakdown. Set include_failures to also list up to 100 failed items as {key, locale, error}. Free read. Poll this after translate_missing, retry_failed_batch, or a push that queued a batch. Be mindful of the 60 requests/minute limit when polling.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "batch_id": {
+          "description": "The batch id returned by translate_missing, push_file, or list_batches.",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer",
+        },
+        "include_failures": {
+          "description": "Also return up to 100 failed items.",
+          "type": "boolean",
+        },
+      },
+      "required": [
+        "batch_id",
+      ],
+      "type": "object",
+    },
+    "name": "get_batch_status",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "List the project's AI translation batches, most recent first (at most 50). Set active_only to return only running batches (status pending or processing), useful to find the batch that is blocking a new translate_missing call, or the auto-batch queued by a source-locale edit. Free read.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "active_only": {
+          "description": "Only batches still pending or processing.",
+          "type": "boolean",
+        },
+      },
+      "type": "object",
+    },
+    "name": "list_batches",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Re-queue the FAILED items of a finished batch as a new AI translation batch. SPENDS AI word quota and conflicts with a running batch (active-batch, HTTP 409). Returns the new batch; poll get_batch_status with its id. Requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "batch_id": {
+          "description": "Id of the finished batch whose failed items should be retried.",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer",
+        },
+      },
+      "required": [
+        "batch_id",
+      ],
+      "type": "object",
+    },
+    "name": "retry_failed_batch",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Stop a pending or processing AI translation batch. Queued chunks refuse to run, so this is how you STOP spend rather than cause it, and the batch's unspent reserved words go back to the cycle allowance (words already spent on the items it completed stay spent). Already-translated items are kept; the remaining items are marked failed, so retry_failed_batch resumes what was stopped. Idempotent: a batch that already finished comes back unchanged with its own status, never an error. Requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "batch_id": {
+          "description": "Id of the batch to stop.",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer",
+        },
+      },
+      "required": [
+        "batch_id",
+      ],
+      "type": "object",
+    },
+    "name": "cancel_batch",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Run the agentic QA pass over the project's target translations (plan-gated: requires a plan with quality mode). Scopes: "missing" = rows never QA'd, "stale" = rows whose source changed since their last QA, "all" = every row, "selected" = only the given key_ids (a no-op without key_ids); optionally restrict locales. Incremental: rows already QA'd against the current source are skipped. SPENDS AI word quota. Returns {dispatched_jobs, rows}; findings are persisted per row and appear in get_translation as needs_review / qa_score / qa_findings once the background jobs finish. Requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "key_ids": {
+          "description": "Restrict to these numeric key ids.",
+          "items": {
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer",
+          },
+          "maxItems": 2000,
+          "type": "array",
+        },
+        "locales": {
+          "description": "Restrict to these target locales.",
+          "items": {
+            "maxLength": 35,
+            "type": "string",
+          },
+          "maxItems": 200,
+          "type": "array",
+        },
+        "scope": {
+          "description": "Which rows to QA.",
+          "enum": [
+            "missing",
+            "stale",
+            "all",
+            "selected",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "scope",
+      ],
+      "type": "object",
+    },
+    "name": "run_qa",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "List the project's glossary terms (plan-gated feature). Returns up to 100 terms per page with keyset pagination: pass the returned next_cursor to fetch the next page; next_cursor is null on the last page. Filter by status: "active" (default, enforced in AI translation and QA), "pending" (AI-extracted candidates awaiting review), or "rejected". Free read; requires the "read" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "cursor": {
+          "description": "Opaque pagination cursor from a previous call's next_cursor.",
+          "type": "string",
+        },
+        "status": {
+          "description": "Term status filter (default "active").",
+          "enum": [
+            "active",
+            "pending",
+            "rejected",
+          ],
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "glossary_list_terms",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Create a new glossary term with status "active". It immediately steers future AI translation and QA for this project. Set do_not_translate for terms that must stay verbatim (brand names), forbidden for terms QA must flag, or provide required per-locale translations. Plan-gated feature; requires the "manage" ability. Returns the created term (with its id).",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "case_sensitive": {
+          "description": "Match the term case-sensitively (default false).",
+          "type": "boolean",
+        },
+        "do_not_translate": {
+          "description": "Keep the source term verbatim in every language (brand names etc.). Clears translations.",
+          "type": "boolean",
+        },
+        "forbidden": {
+          "description": "Flag the term as forbidden. QA reports any use of it. Clears translations.",
+          "type": "boolean",
+        },
+        "notes": {
+          "description": "Optional usage notes shown to translators and the AI.",
+          "maxLength": 2000,
+          "type": "string",
+        },
+        "part_of_speech": {
+          "description": "Optional part of speech, e.g. "noun".",
+          "maxLength": 30,
+          "type": "string",
+        },
+        "source_term": {
+          "description": "The term as it appears in the source language.",
+          "maxLength": 255,
+          "type": "string",
+        },
+        "translations": {
+          "additionalProperties": {
+            "type": "string",
+          },
+          "description": "Map of locale code to required translation, e.g. {"fr": "Tableau de bord"}. Ignored when do_not_translate or forbidden is set.",
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+      },
+      "required": [
+        "source_term",
+      ],
+      "type": "object",
+    },
+    "name": "glossary_add_term",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "REPLACE a glossary term by id. This is a full replace, not a patch: send every field that should be kept; source_term is required and any omitted optional field resets to its default (false / empty). Read the term first via glossary_list_terms. Plan-gated feature; requires the "manage" ability. Returns the updated term.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "case_sensitive": {
+          "description": "Match the term case-sensitively (default false).",
+          "type": "boolean",
+        },
+        "do_not_translate": {
+          "description": "Keep the source term verbatim in every language (brand names etc.). Clears translations.",
+          "type": "boolean",
+        },
+        "forbidden": {
+          "description": "Flag the term as forbidden. QA reports any use of it. Clears translations.",
+          "type": "boolean",
+        },
+        "notes": {
+          "description": "Optional usage notes shown to translators and the AI.",
+          "maxLength": 2000,
+          "type": "string",
+        },
+        "part_of_speech": {
+          "description": "Optional part of speech, e.g. "noun".",
+          "maxLength": 30,
+          "type": "string",
+        },
+        "source_term": {
+          "description": "The term as it appears in the source language.",
+          "maxLength": 255,
+          "type": "string",
+        },
+        "term_id": {
+          "description": "Id of the term to replace.",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer",
+        },
+        "translations": {
+          "additionalProperties": {
+            "type": "string",
+          },
+          "description": "Map of locale code to required translation, e.g. {"fr": "Tableau de bord"}. Ignored when do_not_translate or forbidden is set.",
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+      },
+      "required": [
+        "term_id",
+        "source_term",
+      ],
+      "type": "object",
+    },
+    "name": "glossary_update_term",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Permanently delete a glossary term by id. This cannot be undone; future AI translation and QA stop enforcing the term. Plan-gated feature; requires the "manage" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "term_id": {
+          "description": "Id of the term to delete.",
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer",
+        },
+      },
+      "required": [
+        "term_id",
+      ],
+      "type": "object",
+    },
+    "name": "glossary_delete_term",
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Export one locale's translations as a localization file and return its content as text. Free read. Formats: json_flat, json_nested, android_xml, ios_strings, ios_stringsdict, flutter_arb, laravel_php, laravel_json, xliff_12, ios_xcstrings, gettext_po, yaml, csv, xlsx, xliff_20, java_properties, resx, markdown, unity_csv, unreal_po. Optional min_state exports only values that are human_edited-or-better, or reviewed only. skipped_keys counts entries the chosen format cannot represent (e.g. plural keys in json_flat, simple keys in ios_stringsdict). On a project set to icu message syntax the server also withholds entries whose translation is not valid ICU MessageFormat, and reports how many in omitted_invalid_icu_keys, which is absent when the server did not check. Requires the "pull" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "format": {
+          "description": "The file format id.",
+          "enum": [
+            "json_flat",
+            "json_nested",
+            "android_xml",
+            "ios_strings",
+            "ios_stringsdict",
+            "flutter_arb",
+            "laravel_php",
+            "laravel_json",
+            "xliff_12",
+            "ios_xcstrings",
+            "gettext_po",
+            "yaml",
+            "csv",
+            "xlsx",
+            "xliff_20",
+            "java_properties",
+            "resx",
+            "markdown",
+            "unity_csv",
+            "unreal_po",
+          ],
+          "type": "string",
+        },
+        "locale": {
+          "description": "A locale configured on the project.",
+          "maxLength": 35,
+          "type": "string",
+        },
+        "min_state": {
+          "description": "Export only values at or above this workflow state; omit to export everything.",
+          "enum": [
+            "human_edited",
+            "reviewed",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "format",
+        "locale",
+      ],
+      "type": "object",
+    },
+    "name": "pull_file",
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+    },
+    "description": "Import a localization file into one locale; pass the file content as a string (max 10 MB before JSON escaping, which can enlarge it, so a file with many non-ASCII characters may be refused below 10 MB). Formats: json_flat, json_nested, android_xml, ios_strings, ios_stringsdict, flutter_arb, laravel_php, laravel_json, xliff_12, ios_xcstrings, gettext_po, yaml, csv, xlsx, xliff_20, java_properties, resx, markdown, unity_csv, unreal_po. Pushing the SOURCE locale creates new keys and updates source values; pushing a target locale writes translations for existing keys (unknown keys are reported, never created). Values are written as human edits, but the server keeps existing human edits over pushed values and reports them as conflicts. Mode "sync_removals" (source locale only) additionally DELETES every project key missing from the file. This is destructive; the default "merge" never deletes. When the project has auto-translate on, a push may queue an AI batch (returned in \`batch\`, quota permitting; see quota_exceeded, and translation_paused for any other stop on AI spend). Optional \`metadata\` (source locale only, and not for formats that carry descriptions in the file) is a JSON sidecar of key descriptions and length ceilings keyed by key name, e.g. {"cart.title": {"description": "Cart page heading", "max_length": 40}}; null clears a field, an absent field is left alone. The result then carries a \`metadata\` block, and a warning if the server ignored the sidecar. Requires the "push" ability.",
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "content": {
+          "description": "The raw file content, exactly as it would sit on disk.",
+          "type": "string",
+        },
+        "filename": {
+          "description": "Optional upload filename; defaults to "<locale>.<ext>".",
+          "type": "string",
+        },
+        "format": {
+          "description": "The file format id, e.g. "json_flat".",
+          "enum": [
+            "json_flat",
+            "json_nested",
+            "android_xml",
+            "ios_strings",
+            "ios_stringsdict",
+            "flutter_arb",
+            "laravel_php",
+            "laravel_json",
+            "xliff_12",
+            "ios_xcstrings",
+            "gettext_po",
+            "yaml",
+            "csv",
+            "xlsx",
+            "xliff_20",
+            "java_properties",
+            "resx",
+            "markdown",
+            "unity_csv",
+            "unreal_po",
+          ],
+          "type": "string",
+        },
+        "locale": {
+          "description": "The locale the file contains.",
+          "maxLength": 35,
+          "type": "string",
+        },
+        "metadata": {
+          "description": "Optional key-metadata sidecar (JSON text, max 1 MiB): {"<key>": {"description": string|null, "max_length": integer|null}}. Source-locale push only.",
+          "maxLength": 1048576,
+          "type": "string",
+        },
+        "mode": {
+          "description": ""merge" (default) never deletes; "sync_removals" deletes keys absent from a SOURCE-locale file.",
+          "enum": [
+            "merge",
+            "sync_removals",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "format",
+        "locale",
+        "content",
+      ],
+      "type": "object",
+    },
+    "name": "push_file",
+  },
+]
+`;

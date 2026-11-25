@@ -1,0 +1,54 @@
+{
+  "name": "@transglot/mcp",
+  "version": "0.3.0",
+  "description": "MCP server for transglot: lets AI agents read and write translations, trigger AI batches, run QA, and manage the glossary over the public REST API.",
+  "license": "MIT",
+  "author": {
+    "name": "transglot",
+    "email": "hello@transglot.ai",
+    "url": "https://transglot.ai"
+  },
+  "homepage": "https://transglot.ai",
+  "bugs": {
+    "url": "https://transglot.ai/contact",
+    "email": "hello@transglot.ai"
+  },
+  "keywords": [
+    "i18n",
+    "l10n",
+    "localization",
+    "translation",
+    "transglot",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "transglot-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1",
+    "typescript": "^6.0",
+    "vitest": "^4"
+  }
+}
